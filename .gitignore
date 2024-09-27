@@ -1,1 +1,5 @@
-env/
+# Cache and venv
+__pycache__/
+.env/
+
+features.csv
