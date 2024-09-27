@@ -57,6 +57,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         embedded_files_count = pymupdf_file.embfile_count()
         embedded_files_total_size = 0
         for i in range(embedded_files_count):
+            # TODO check if the embedded file is a valid stream
             embedded_files_total_size += len(pymupdf_file.embfile_get(i))
         embedded_files_average_size = embedded_files_total_size / embedded_files_count if embedded_files_count > 0 else 0
 
