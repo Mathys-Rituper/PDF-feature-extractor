@@ -34,14 +34,27 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
 
         pages = len(pymupdf_file)
 
-        header = 0 # Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
+        header = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
 
         image_count = 0
         text = 0
         object_count = 0
-        font_count = 0
-        embedded_files_count = 0
-        embedded_files_average_size = 0
+        fonts = set()
+        for page in pymupdf_file:
+            image_count += len(page.get_images())
+            text += len(page.get_text())
+            fonts.update(page.get_fonts())
+            object_count += len(page.get_objects())
+
+        font_count = len(fonts)
+        embedded_files_count = pymupdf_file.embfile_count()
+        embedded_files_total_size = 0
+        for i in range(embedded_files_count):
+            embedded_files_total_size += len(pymupdf_file.embfile(i).get_data())
+        embedded_files_average_size = embedded_files_total_size / embedded_files_count if embedded_files_count > 0 else 0
+
+
+
         stream_keyword_count = 0
         endstream_keyword_count = 0
         stream_average_size = 0
@@ -65,6 +78,8 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         trailer_keyword_count = 0
         xref_keyword_count = 0
         startxref_keyword_count = 0
+
+
         children_count_average = 0
         children_count_median = 0
         children_count_variance = 0
