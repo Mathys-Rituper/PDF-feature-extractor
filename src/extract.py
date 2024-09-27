@@ -40,11 +40,12 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         text = 0
         object_count = 0
         fonts = set()
-        for page in pymupdf_file:
-            image_count += len(page.get_images())
-            text += len(page.get_text())
-            fonts.update(page.get_fonts())
-            object_count += len(page.get_xobjects())
+        if encryption:
+            for page in pymupdf_file:
+                image_count += len(page.get_images())
+                text += len(page.get_text())
+                fonts.update(page.get_fonts())
+                object_count += len(page.get_xobjects())
 
         font_count = len(fonts)
         embedded_files_count = pymupdf_file.embfile_count()
