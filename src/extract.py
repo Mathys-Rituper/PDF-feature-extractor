@@ -28,8 +28,13 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
             print("encryption: ",pdf_path)
     
         metadata_size = 0
-        pages = 0
-        header = 0
+        for key in pymupdf_file.metadata:
+            metadata_size += len(bytes(key)) + len(bytes(pymupdf_file.metadata[key]))
+
+        pages = len(pymupdf_file)
+
+        header = pymupdf_file.metadata["header"]
+
         image_count = 0
         text = 0
         object_count = 0
