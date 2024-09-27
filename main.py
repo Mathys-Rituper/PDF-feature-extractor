@@ -7,7 +7,7 @@ import asyncio
 async def main():
     # Check if the user has properly provided the paths for both the benign and malicious PDF files
     if len(sys.argv) != 3:
-        print("Usage: python3 extract.py <benign_pdf_path> <malicious_pdf_path>")
+        print("Usage: python3 main.py <benign_pdf_path> <malicious_pdf_path>")
         sys.exit(1)
     # if one of the paths cannot be read or does not contain at least one PDF file, exit the program
     if not os.path.exists(sys.argv[1]) or not os.path.exists(sys.argv[2]):
