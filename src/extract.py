@@ -28,8 +28,9 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
             print("encryption: ",pdf_path)
     
         metadata_size = 0
-        for key in pymupdf_file.metadata:
-            metadata_size += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
+        if isinstance(pymupdf_file.metadata, dict):
+            for key in pymupdf_file.metadata:
+                metadata_size += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
 
         pages = len(pymupdf_file)
 
