@@ -44,7 +44,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
             image_count += len(page.get_images())
             text += len(page.get_text())
             fonts.update(page.get_fonts())
-            object_count += len(page.get_objects())
+            object_count += len(page.get_xobjects())
 
         font_count = len(fonts)
         embedded_files_count = pymupdf_file.embfile_count()
