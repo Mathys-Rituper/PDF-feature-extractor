@@ -2,6 +2,7 @@ import os
 import sys
 import pandas as pd
 from extract import extract_features_from_file
+import asyncio
 
 async def main():
     # Check if the user has properly provided the paths for both the benign and malicious PDF files
@@ -43,4 +44,5 @@ async def main():
     print("Feature extraction completed.")
 
 if __name__ == "__main__":
-    main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
