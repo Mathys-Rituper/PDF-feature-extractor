@@ -40,30 +40,35 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         text = 0
         object_count = 0
         fonts = set()
-        if not encryption:
+        try:
             for page in pymupdf_file:
                 image_count += len(page.get_images())
                 text += len(page.get_text())
                 fonts.update(page.get_fonts())
-                object_count += len(page.get_xobjects())
 
-        font_count = len(fonts)
+                object_count += len(page.get_xobjects())
+            font_count = len(fonts)
+        except Exception:
+            image_count = -1
+            text = -1
+            object_count = -1
+            font_count = -1
+
         embedded_files_count = pymupdf_file.embfile_count()
         embedded_files_total_size = 0
         for i in range(embedded_files_count):
             embedded_files_total_size += len(pymupdf_file.embfile_get(i))
         embedded_files_average_size = embedded_files_total_size / embedded_files_count if embedded_files_count > 0 else 0
 
-
-
-        stream_keyword_count = 0
-        endstream_keyword_count = 0
         stream_average_size = 0
         xref_count = 0
         obfuscation_count = 0
         filter_count = 0
         nestedfilter_object_count = 0
         stream_object_count = 0
+
+        stream_keyword_count = 0
+        endstream_keyword_count = 0
         javascript_keyword_count = 0
         js_keyword_count = 0
         uri_keyword_count = 0
