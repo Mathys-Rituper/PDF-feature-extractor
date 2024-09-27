@@ -40,7 +40,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         text = 0
         object_count = 0
         fonts = set()
-        if encryption:
+        if not encryption:
             for page in pymupdf_file:
                 image_count += len(page.get_images())
                 text += len(page.get_text())
