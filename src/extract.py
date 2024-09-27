@@ -29,7 +29,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
     
         metadata_size = 0
         for key in pymupdf_file.metadata:
-            metadata_size += len(bytes(key)) + len(bytes(pymupdf_file.metadata[key]))
+            metadata_size += len(key.encode("utf8")) + len(pymupdf_file.metadata[key].encode("utf8"))
 
         pages = len(pymupdf_file)
 
