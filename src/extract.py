@@ -33,7 +33,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
 
         pages = len(pymupdf_file)
 
-        header = pymupdf_file.metadata["header"]
+        header = # Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
 
         image_count = 0
         text = 0
