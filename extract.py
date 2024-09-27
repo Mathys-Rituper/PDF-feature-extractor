@@ -5,9 +5,7 @@ import sys
 import pandas as pd
 
 
-
-
-async def extract_features_from_file(pdf_path : str, is_malicious : bool, destination : DataFrame):
+async def extract_features_from_file(pdf_path : str, is_malicious : bool, destination : pd.DataFrame):
     pdf_size = os.path.getsize(pdf_path) 
     hashed_filename = pdf_path
     title_len = 0

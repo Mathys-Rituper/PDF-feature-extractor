@@ -4,9 +4,9 @@
 
 The CIC-Evasive-PDFMal2022 dataset is a dataset of PDF files that have been collected from the internet and labeled as either benign or malicious. The dataset is intended to be used for training machine learning models to detect malicious PDF files. The dataset is available for download from the Canadian Institute for Cybersecurity (CIC) website (https://www.unb.ca/cic/datasets/pdfmal-2022.html). More information about the dataset can be found in the following paper: Maryam Issakhani, Princy Victor, Ali Tekeoglu, and Arash Habibi Lashkari1, “PDF Malware Detection Based on Stacking Learning”, The International Conference on Information Systems Security and Privacy, February 2022
 
-The dataset is published on the CIC website as 2 zip files, one for benign PDF files and one for malicious PDF files, but no feature extraction code is provided, the only information provided in the research paper about feature extraction is that the Python package pdfid and PyMuPDF were used to extract the features listed in the research paper, which is insufficient to reproduce the feature extraction process.
+The dataset is published on the CIC website as 2 zip files, one for benign PDF files and one for malicious PDF files, but no feature extraction code is provided, the only information provided in the research paper about feature extraction is that the Python package pdfid and PyMuPDF were used to extract the features listed in the paper, which is insufficient to reproduce the feature extraction process.
 
-Furthermore, other research papers highlight limitations of the dataset's features, such as Haj Abdel Khaleq et Al "Improving Malicious PDF Detection with a Robust Stacking Ensemble Approach", which highlights major flaws in the reliablity of the initial feature extraction process, and proposes a new feature extraction process that unfortunately is unfortunately no longer available online.
+Furthermore, other research papers highlight limitations of the dataset's feature extraction, such as Haj Abdel Khaleq et Al "Improving Malicious PDF Detection with a Robust Stacking Ensemble Approach", which highlights major flaws in the reliablity of the initial feature extraction process, and proposes an improved feature extraction process that unfortunately is unfortunately no longer available online.
 
 Eventually, other research papers highlight the need for the addition of more features, such as "R. Liu, R. Joyce, C. Matuszek and C. Nicholas, "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset", which suggests a  new approach focused on PDF structural analysis as a tree structure, and focuses its features on the nodal properties of the files.
 
@@ -14,7 +14,7 @@ Eventually, other research papers highlight the need for the addition of more fe
 
 ## Objective
 
-The objective of this project is to offer cybersecurity and ML researchers with an improved, open source feature extractor for the CIC-Evasive-PDFMal2022 dataset, that will take into consideration the limitations of the initial feature extraction process that were highlighted in the previously mentioned research papers, as far as reliability of the features and the addition of nodal features.
+The objective of this project is to provide cybersecurity and ML researchers with an improved, open source feature extractor for the CIC-Evasive-PDFMal2022 dataset, that will take into consideration the limitations of the initial feature extraction process that were highlighted in the previously mentioned research papers, as far as reliability of the features and the addition of nodal features.
 
 ## Methodology
 
