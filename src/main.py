@@ -44,7 +44,7 @@ async def main():
 
     # Save the extracted features to a CSV file
     print(f"Feature extraction completed, saving {len(df)} samples to features.csv")
-    df.to_csv('../features.csv', index=False)
+    df.to_csv('features.csv', index=False)
 
     print("Feature extraction completed.")
 

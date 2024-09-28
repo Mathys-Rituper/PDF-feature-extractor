@@ -2,7 +2,7 @@
 # PLEASE FIND THE GITHUB LINK TO THE ORIGINAL PROJECT BELOW:
 # https://github.com/uvasrg/EvadeML/blob/master/lib/pdf_genome.py
 
-from common import *
+from lib.common import *
 import pickle
 import random
 
@@ -17,7 +17,7 @@ class PdfGenome:
 
     @staticmethod
     def load_genome(pdf_file_path, pickleable = False):
-        pdf_obj = PdfReader(pdf_file_path, slow_parsing=False)
+        pdf_obj = PdfReader(pdf_file_path)
 
         if pickleable:
             # Remove the dynamic contents to make it pickleable.

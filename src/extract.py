@@ -6,7 +6,7 @@ import pandas as pd
 import pdfid
 import pymupdf
 
-from pdf_genome import PdfGenome
+from lib.pdf_genome import PdfGenome
 import networkx as nx
 import numpy as np
 
@@ -119,8 +119,9 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
             average_shortest_path = nx.average_shortest_path_length(G)
             average_clustering_coefficient = nx.average_clustering(G.to_undirected())
             density = nx.density(G)
-        except:
-            print("genome error for: ",pdf_path)
+        except Exception as e:
+            #print("genome error for: ",pdf_path)
+            raise e
             
 
 
