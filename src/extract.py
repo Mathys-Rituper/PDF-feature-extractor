@@ -6,6 +6,10 @@ import pandas as pd
 import pdfid
 import pymupdf
 
+from pdf_genome import PdfGenome
+import networkx as nx
+import numpy as np
+
 def hash_file_sha256(filename: str):
     """ Returns the SHA256 hash of a file """
     with open(filename,"rb") as f:
@@ -86,17 +90,42 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         xref_keyword_count = 0
         startxref_keyword_count = 0
 
+        # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
+        children_count_average = -1
+        children_count_median = -1
+        children_count_variance = -1
+        leaves_count = -1
+        nodes_count = -1
+        degree = -1
+        degree_assortativity = -1
+        average_shortest_path = -1
+        average_clustering_coefficient = -1
+        density = -1
+        try:
+            genomeObj = PdfGenome.load_genome(pdf_path)
+            paths = PdfGenome.get_paths(genomeObj)
+            G = nx.DiGraph()
+            for path in paths:
+                for i in range(len(path)-1):
+                    G.add_edge(path[i], path[i+1])
+            children_count = [degree for _, degree in G.out_degree()]
+            children_count_average = np.mean(children_count)
+            children_count_median = np.median(children_count)
+            children_count_variance = np.var(children_count)
+            leaves_count = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
+            nodes_count = G.number_of_nodes()
+            degree = sum(dict(G.degree()).values()) / G.number_of_nodes()
+            degree_assortativity = nx.degree_assortativity_coefficient(G.to_undirected())
+            average_shortest_path = nx.average_shortest_path_length(G)
+            average_clustering_coefficient = nx.average_clustering(G.to_undirected())
+            density = nx.density(G)
+        except:
+            print("genome error for: ",pdf_path)
+            
 
-        children_count_average = 0
-        children_count_median = 0
-        children_count_variance = 0
-        leaves_count = 0
-        nodes_count = 0
-        degree = 0
-        degree_assortativity = 0
-        average_shortest_path = 0
-        average_clustering_coefficient = 0
-        density = 0
+
+
+        
 
         # print([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
         # add the extracted features to the DataFrame

@@ -3,3 +3,4 @@ __pycache__/
 .env/
 env
 features.csv
+.DS_Store

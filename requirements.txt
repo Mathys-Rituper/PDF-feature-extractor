@@ -2,3 +2,4 @@ pdfid
 pymupdf
 networkx
 pandas
+pdfrw
