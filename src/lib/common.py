@@ -1,9 +1,6 @@
 import os
 import copy
 import hashlib
-# NOTE FROM PROJECT AUTHORS : WE ARE NOT ORIGINAL AUTHORS NEITHER CONTRIBUTORS OF THIS FILE. IT IS A NECESSARY DEPENDENCY FOR Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset", AND WE HAD NO CHOICE BUT TO INCLUDE IT IN OUR PROJECT SICE IT IS NOT PUBLISHED ON PYPI.
-# PLEASE FIND THE GITHUB LINK TO THE ORIGINAL PROJECT BELOW:
-# https://github.com/uvasrg/EvadeML/blob/master/lib/pdf_genome.py
 
 LOW_SCORE = -65535
 
