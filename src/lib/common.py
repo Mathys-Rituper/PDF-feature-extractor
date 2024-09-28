@@ -1,3 +1,6 @@
+
+# NB : This file is a necessary dependency for Ran Liu et Al.'s pdf_genpome lib to work. We are not the original authors of this lib, which can be found at https://github.com/uvasrg/EvadeML/blob/master/lib/common.py
+
 import os
 import copy
 import hashlib

@@ -4,3 +4,4 @@ __pycache__/
 env
 features.csv
 .DS_Store
+*.log

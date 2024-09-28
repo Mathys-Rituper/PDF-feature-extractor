@@ -1,9 +1,11 @@
+# NB : This file was provided to us by Ran Liu et Al., so we could reproduce their findings. We are not the original authors of this lib, which can be found at https://github.com/uvasrg/EvadeML/blob/master/lib/pdf_genome.py
+
 import pickle
 import random
 import sys
 sys.path.insert(0, "./")
 import pdfrw
-from common import *
+from lib.common import *
 from pdfrw import PdfReader, PdfWriter
 from pdfrw.objects import PdfObject
 
@@ -19,7 +21,7 @@ class PdfGenome:
     @staticmethod
     def load_genome(pdf_file_path, pickleable=False):
         try:
-            pdf_obj = PdfReader(pdf_file_path, slow_parsing=True)
+            pdf_obj = PdfReader(pdf_file_path)
         except:
             print(pdf_file_path)
             raise
@@ -93,7 +95,7 @@ class PdfGenome:
                 else:
                     # Non-terminal nodes. Need further traversal.
                     obj_id = id(obj)
-                    if visited_objs_paths.has_key(obj_id):
+                    if obj_id in visited_objs_paths:
                         # paths_collection.append(path) # Why should we add a visited obj?
                         visited_objs_paths[obj_id].append(path)
                         continue

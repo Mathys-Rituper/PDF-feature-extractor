@@ -14,7 +14,7 @@ def hash_file_sha256(filename: str):
     """ Returns the SHA256 hash of a file """
     with open(filename,"rb") as f:
         bytes = f.read()
-        return hashlib.sha256(bytes).hexdigest();
+        return hashlib.sha256(bytes).hexdigest()
 
 async def extract_features_from_file(pdf_path : str, is_malicious : bool,
                                      destination : pd.DataFrame):
@@ -103,7 +103,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
         density = -1
         try:
             genomeObj = PdfGenome.load_genome(pdf_path)
-            paths = PdfGenome.get_paths(genomeObj)
+            paths = PdfGenome.get_object_paths(genomeObj)
             G = nx.DiGraph()
             for path in paths:
                 for i in range(len(path)-1):
@@ -116,21 +116,15 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
             nodes_count = G.number_of_nodes()
             degree = sum(dict(G.degree()).values()) / G.number_of_nodes()
             degree_assortativity = nx.degree_assortativity_coefficient(G.to_undirected())
-            average_shortest_path = nx.average_shortest_path_length(G)
+            average_shortest_path = nx.average_shortest_path_length(G.to_undirected())
             average_clustering_coefficient = nx.average_clustering(G.to_undirected())
             density = nx.density(G)
         except Exception as e:
-            #print("genome error for: ",pdf_path)
-            raise e
+            print("genome error for: ",pdf_path, e)
+            #raise e
             
-
-
-
-        
 
         # print([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
         # add the extracted features to the DataFrame
         destination.loc[len(destination)] = [hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious]
-
-
 
