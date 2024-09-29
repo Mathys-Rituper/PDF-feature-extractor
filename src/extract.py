@@ -20,6 +20,7 @@ async def extract_features_from_file(pdf_path : str, is_malicious : bool,
                                      destination : pd.DataFrame):
     try:
         pymupdf_file = pymupdf.open(pdf_path)
+        print(f"Processing {pdf_path}")
     except pymupdf.FileDataError:
         print("opening: ",pdf_path)
     else:

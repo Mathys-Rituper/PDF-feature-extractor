@@ -32,15 +32,15 @@ async def main():
     features = ['hashed_file','pdf_size', 'title_len', 'encryption', 'metadata_size', 'pages', 'header', 'image_count', 'text', 'object_count', 'font_count', 'embedded_files_count', 'embedded_files_average_size', 'stream_keyword_count', 'endstream_keyword_count', 'stream_average_size', 'xref_count', 'obfuscation_count', 'filter_count', 'nestedfilter_object_count', 'stream_object_count', 'javascript_keyword_count', 'js_keyword_count', 'uri_keyword_count', 'action_keyword_count', 'aa_keyword_count', 'openaction_keyword_count', 'launch_keyword_count', 'submitform_keyword_count', 'acroform_keyword_count', 'xfa_keyword_count', 'jbig2decode_keyword_count', 'richmedia_keyword_count', 'trailer_keyword_count', 'xref_keyword_count', 'startxref_keyword_count', 'children_count_average', 'children_count_median', 'children_count_variance', 'leaves_count', 'nodes_count', 'degree_average', 'degree_assortativity', 'average_shortest_path', 'average_clustering_coefficient', 'density', "is_malicious"]
     df = pd.DataFrame(columns=features)
     
-    # Extract features from the benign PDF files
-    print(f"Extracting features from {len(benign_files)} benign PDF files...")
-    for benign_file in benign_files:
-        await extract_features_from_file(benign_file, False, df)
-
     # Extract features from the malicious PDF files
     print(f"Extracting features from {len(malicious_files)} malicious PDF files...")
     for malicious_file in malicious_files:
         await extract_features_from_file(malicious_file, True, df)
+
+    # Extract features from the benign PDF files
+    print(f"Extracting features from {len(benign_files)} benign PDF files...")
+    for benign_file in benign_files:
+        await extract_features_from_file(benign_file, False, df)
 
     # Save the extracted features to a CSV file
     print(f"Feature extraction completed, saving {len(df)} samples to features.csv")
