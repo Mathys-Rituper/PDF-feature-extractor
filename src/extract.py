@@ -1,6 +1,8 @@
 import hashlib
+import logging
 import os
 import sys
+import threading
 
 import pandas as pd
 import pdfid
@@ -10,122 +12,141 @@ from lib.pdf_genome import PdfGenome
 import networkx as nx
 import numpy as np
 
+class Threaded_dataframe:
+    def __init__(self, features: list[str]):
+        self.dataframe = pd.DataFrame(columns=features)
+        self._lock = threading.Lock()
+
+    def add_entry(self, entry):
+        with self._lock:
+            try:
+                self.dataframe.loc[len(self.dataframe)] = entry
+            except Exception as e:
+                logging.error(e)
+
+    def __len__(self):
+        return len(self.dataframe)
+
+    def to_csv(self, features, index):
+        return self.dataframe.to_csv(features, index=index)
+
 def hash_file_sha256(filename: str):
     """ Returns the SHA256 hash of a file """
     with open(filename,"rb") as f:
         bytes = f.read()
         return hashlib.sha256(bytes).hexdigest()
 
-async def extract_features_from_file(pdf_path : str, is_malicious : bool,
-                                     destination : pd.DataFrame):
+def extract_features_from_file(pdf_path : str, is_malicious : bool,
+                                     destination : Threaded_dataframe):
+    features = {}
     try:
         pymupdf_file = pymupdf.open(pdf_path)
-        print(f"Processing {pdf_path}")
+        logging.info(f"Processing {pdf_path}")
     except pymupdf.FileDataError:
-        print("opening: ",pdf_path)
+        logging.error("opening: ",pdf_path)
     else:
-        pdf_size = round(os.path.getsize(pdf_path) / 1024, 2)
-        hashed_file = hash_file_sha256(pdf_path)
-        title_len = len(os.path.basename(pdf_path))
+        features['pdf_size'] = round(os.path.getsize(pdf_path) / 1024, 2)
+        features['hashed_file'] = hash_file_sha256(pdf_path)
+        features['title_len'] = len(os.path.basename(pdf_path))
         try:
-            encryption = pymupdf_file.needs_pass or pymupdf_file.metadata["encryption"] is not None
+            features['encryption'] = pymupdf_file.needs_pass or pymupdf_file.metadata["encryption"] is not None
         except TypeError:
-            print("encryption: ",pdf_path)
+            logging.error("encryption: " + pdf_path)
     
-        metadata_size = 0
+        features['metadata_size'] = 0
         if isinstance(pymupdf_file.metadata, dict):
             for key in pymupdf_file.metadata:
-                metadata_size += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
+                features['metadata_size'] += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
 
-        pages = len(pymupdf_file)
+        features['pages'] = len(pymupdf_file)
+        features['header'] = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
 
-        header = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
-
-        image_count = 0
-        text = 0
-        object_count = 0
+        features['image_count'] = 0
+        features['text'] = 0
+        features['object_count'] = 0
         fonts = set()
         try:
             for page in pymupdf_file:
-                image_count += len(page.get_images())
-                text += len(page.get_text())
+                features['image_count'] += len(page.get_images())
+                features['text'] += len(page.get_text())
                 fonts.update(page.get_fonts())
 
-                object_count += len(page.get_xobjects())
-            font_count = len(fonts)
+                features['object_count'] += len(page.get_xobjects())
+            features['font_count'] = len(fonts)
         except Exception:
-            image_count = -1
-            text = -1
-            object_count = -1
-            font_count = -1
+            features['image_count'] = -1
+            features['text'] = -1
+            features['object_count'] = -1
+            features['font_count'] = -1
 
-        embedded_files_count = pymupdf_file.embfile_count()
+        features['embedded_files_count'] = pymupdf_file.embfile_count()
         embedded_files_total_size = 0
-        for i in range(embedded_files_count):
+        for i in range(features['embedded_files_count']):
             # TODO check if the embedded file is a valid stream
             embedded_files_total_size += len(pymupdf_file.embfile_get(i))
-        embedded_files_average_size = embedded_files_total_size / embedded_files_count if embedded_files_count > 0 else 0
+        features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
 
-        stream_average_size = 0
-        xref_count = 0
-        obfuscation_count = 0
-        filter_count = 0
-        nestedfilter_object_count = 0
-        stream_object_count = 0
+        features['stream_average_size'] = 0
+        features['xref_count'] = 0
+        features['obfuscation_count'] = 0
+        features['filter_count'] = 0
+        features['nestedfilter_object_count'] = 0
+        features['stream_object_count'] = 0
 
-        stream_keyword_count = 0
-        endstream_keyword_count = 0
-        javascript_keyword_count = 0
-        js_keyword_count = 0
-        uri_keyword_count = 0
-        action_keyword_count = 0
-        aa_keyword_count = 0
-        openaction_keyword_count = 0
-        launch_keyword_count = 0
-        submitform_keyword_count = 0
-        acroform_keyword_count = 0
-        xfa_keyword_count = 0
-        jbig2decode_keyword_count = 0
-        richmedia_keyword_count = 0
-        trailer_keyword_count = 0
-        xref_keyword_count = 0
-        startxref_keyword_count = 0
+        features['stream_keyword_count'] = 0
+        features['endstream_keyword_count'] = 0
+        features['javascript_keyword_count'] = 0
+        features['js_keyword_count'] = 0
+        features['uri_keyword_count'] = 0
+        features['action_keyword_count'] = 0
+        features['aa_keyword_count'] = 0
+        features['openaction_keyword_count'] = 0
+        features['launch_keyword_count'] = 0
+        features['submitform_keyword_count'] = 0
+        features['acroform_keyword_count'] = 0
+        features['xfa_keyword_count'] = 0
+        features['jbig2decode_keyword_count'] = 0
+        features['richmedia_keyword_count'] = 0
+        features['trailer_keyword_count'] = 0
+        features['xref_keyword_count'] = 0
+        features['startxref_keyword_count'] = 0
 
         # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
-        children_count_average = -1
-        children_count_median = -1
-        children_count_variance = -1
-        leaves_count = -1
-        nodes_count = -1
-        degree = -1
-        degree_assortativity = -1
-        average_shortest_path = -1
-        average_clustering_coefficient = -1
-        density = -1
-        try:
-            genomeObj = PdfGenome.load_genome(pdf_path)
-            paths = PdfGenome.get_object_paths(genomeObj)
-            G = nx.DiGraph()
-            for path in paths:
-                for i in range(len(path)-1):
-                    G.add_edge(path[i], path[i+1])
-            children_count = [degree for _, degree in G.out_degree()]
-            children_count_average = np.mean(children_count)
-            children_count_median = np.median(children_count)
-            children_count_variance = np.var(children_count)
-            leaves_count = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
-            nodes_count = G.number_of_nodes()
-            degree = sum(dict(G.degree()).values()) / G.number_of_nodes()
-            degree_assortativity = nx.degree_assortativity_coefficient(G.to_undirected())
-            average_shortest_path = nx.average_shortest_path_length(G.to_undirected())
-            average_clustering_coefficient = nx.average_clustering(G.to_undirected())
-            density = nx.density(G)
-        except Exception as e:
-            print("genome error for: ",pdf_path, e)
-            #raise e
-            
+        # features['children_count_average'] = -1
+        # features['children_count_median'] = -1
+        # features['children_count_variance'] = -1
+        # features['leaves_count'] = -1
+        # features['nodes_count'] = -1
+        # features['degree'] = -1
+        # features['degree_assortativity'] = -1
+        # features['average_shortest_path'] = -1
+        # features['average_clustering_coefficient'] = -1
+        # features['density'] = -1
+        # logging.info("extracting genome for ", pdf_path)
+        # try:
+        #     genomeObj = PdfGenome.load_genome(pdf_path)
+        #     paths = PdfGenome.get_object_paths(genomeObj)
+        #     G = nx.DiGraph()
+        #     for path in paths:
+        #         for i in range(len(path)-1):
+        #             G.add_edge(path[i], path[i+1])
+        #     children_count = [degree for _, degree in G.out_degree()]
+        #     features['children_count_average'] = np.mean(children_count)
+        #     features['children_count_median'] = np.median(children_count)
+        #     features['children_count_variance'] = np.var(children_count)
+        #     features['leaves_count'] = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
+        #     features['nodes_count'] = G.number_of_nodes()
+        #     features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes()
+        #     features['degree_assortativity'] = nx.degree_assortativity_coefficient(G.to_undirected())
+        #     features['average_shortest_path'] = nx.average_shortest_path_length(G.to_undirected())
+        #     features['average_clustering_coefficient'] = nx.average_clustering(G.to_undirected())
+        #     features['density'] = nx.density(G)
+        # except Exception as e:
+        #     logging.info("genome error for: ",pdf_path, e)
+        #     #raise e
 
-        # print([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
+        # logging.info([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
         # add the extracted features to the DataFrame
-        destination.loc[len(destination)] = [hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious]
-
+        #destination.loc[len(destination)] = [hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious]
+        destination.add_entry(features)
+        # logging.info(f"Finished processing: {pdf_path}")
