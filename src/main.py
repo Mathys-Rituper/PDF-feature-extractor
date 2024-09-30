@@ -36,7 +36,7 @@ def main():
     df = Threaded_dataframe(features)
 
     files_iterator = [(file, True, df) for file in malicious_files] + [(file, False, df) for file in benign_files]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
         for arg in files_iterator:
             executor.submit(extract_features_from_file, arg[0], arg[1], arg[2])
 

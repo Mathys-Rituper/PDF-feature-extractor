@@ -16,18 +16,22 @@ class Threaded_dataframe:
     def __init__(self, features: list[str]):
         self.dataframe = pd.DataFrame(columns=features)
         self._lock = threading.Lock()
+        self.values = []
 
     def add_entry(self, entry):
         with self._lock:
             try:
-                self.dataframe.loc[len(self.dataframe)] = entry
+                self.values.append(entry)
             except Exception as e:
                 logging.exception(f"Could not write entry to dataframe" )
 
     def __len__(self):
+        if len(self.dataframe) != len(self.values):
+            self.dataframe = pd.DataFrame.from_records(self.values)
         return len(self.dataframe)
 
     def to_csv(self, features, index):
+        self.dataframe = pd.DataFrame.from_records(self.values)
         return self.dataframe.to_csv(features, index=index)
 
 def hash_file_sha256(filename: str):
@@ -39,9 +43,10 @@ def hash_file_sha256(filename: str):
 def extract_features_from_file(pdf_path : str, is_malicious : bool,
                                      destination : Threaded_dataframe):
     features = {}
+    features['is_malicious'] = is_malicious
     try:
         pymupdf_file = pymupdf.open(pdf_path)
-        logging.info(f"Processing {pdf_path}")
+        #logging.info(f"Processing {pdf_path}")
     except pymupdf.FileDataError:
         logging.exception(f"Exception while opening: {pdf_path}")
     else:
@@ -125,6 +130,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
         features['density'] = -1
         try:
             # TODO FIXME all of this is crap
+            #logging.info(f"Extracting nodal features for {pdf_path}")
             genomeObj = PdfGenome.load_genome(pdf_path)
             paths = PdfGenome.get_object_paths(genomeObj)
             G = nx.DiGraph()
