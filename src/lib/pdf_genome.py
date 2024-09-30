@@ -21,7 +21,7 @@ class PdfGenome:
     def __enter__(self):
         self.pdf_obj = PdfReader(self.pdf_file_path)
 
-    def __exit__(self):
+    def __exit__(self, *args):
         del self.pdf_obj
 
     @staticmethod
