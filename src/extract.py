@@ -88,16 +88,18 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
         features['embedded_files_count'] = pymupdf_file.embfile_count()
         embedded_files_total_size = 0
         for i in range(features['embedded_files_count']):
-            # TODO check if the embedded file is a valid stream
-            embedded_files_total_size += len(pymupdf_file.embfile_get(i))
+            embfile = pymupdf_file.embfile_get(i)
+            if pymupdf_file.xref_is_stream(embfile.xref): #check if stream
+                embedded_files_total_size += len(pymupdf_file.embfile_get(i))
         features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
 
-        features['stream_average_size'] = 0
-        features['xref_count'] = 0
-        features['obfuscation_count'] = 0
-        features['filter_count'] = 0
-        features['nestedfilter_object_count'] = 0
-        features['stream_object_count'] = 0
+        stream_sizes = [pymupdf_file.xref_length(i) for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i)]
+        features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if stream_sizes else 0
+        features['xref_count'] = pymupdf_file.xref_length()
+        features['obfuscation_count'] = 0 #TODO
+        features['filter_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i) and '/Filter' in pymupdf_file.xref_object(i))
+        features['nestedfilter_object_count'] = 0 #TODO
+        features['stream_object_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i))
 
         features['stream_keyword_count'] = 0
         features['endstream_keyword_count'] = 0
