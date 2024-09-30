@@ -91,8 +91,11 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                         embedded_files_total_size += len(pymupdf_file.embfile_get(i))
                 features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
 
-                stream_sizes = [pymupdf_file.xref_length(i) for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i)]
-                features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if stream_sizes else 0
+
+                all_xrefs = [pymupdf_file.xref_object(i) for i in range(pymupdf_file.xref_length())]
+
+                stream_sizes = [len(xref) for xref in all_xrefs if pymupdf_file.xref_is_stream(xref)]
+                features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if len(stream_sizes) > 0 else 0
                 features['xref_count'] = pymupdf_file.xref_length()
                 features['obfuscation_count'] = 0 #TODO
                 features['filter_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i) and '/Filter' in pymupdf_file.xref_object(i))
