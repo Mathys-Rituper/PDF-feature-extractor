@@ -26,6 +26,35 @@ class PdfGenome:
             print(pdf_file_path)
             raise
         return pdf_obj
+    
+    @staticmethod
+    def save_to_file(pdf_obj, file_path):
+        #short_path_for_logging = '/'.join(file_path.split('/')[-3:])
+        #logger.debug("Saving to file: " + short_path_for_logging)
+        y = PdfWriter()
+        y.write(file_path, pdf_obj)
+        # logger.debug("Done")
+
+    @staticmethod
+    def load_trace(pdf_file_path):
+        fpath = pdf_file_path + ".trace"
+        if os.path.isfile(fpath):
+            f = open(fpath, 'rb')
+            trace = pickle.load(f)
+            return trace
+        else:
+            return None
+
+    @staticmethod
+    def load_external_genome(folder, pickleable=False):
+        ext_pdf_paths = []  # element: (entry, path)
+        for file_path in list_file_paths(folder):
+            pdf_obj = PdfGenome.load_genome(file_path, pickleable)
+            paths = PdfGenome.get_object_paths(pdf_obj)
+            for path in paths:
+                ext_pdf_paths.append((pdf_obj, path))
+        return ext_pdf_paths
+
 
     @staticmethod
     def dump_path(path):
@@ -244,4 +273,18 @@ class PdfGenome:
 
         parent_a[key_a] = obj_b
         parent_b[key_b] = obj_a
-        return c1, c2x
+        return c1, c2
+    
+# Parameters in a tuple.
+def _mutation(ntuples):
+    return PdfGenome.mutation(*ntuples)
+
+
+# Test: A multiprocessing method with no requirement for pickable pdfrw objects.
+def _mutation_on_file(ntuples):
+    src_path, dst_path, mut_prob, ext_folder = ntuples
+    pdf_obj = PdfGenome.load_genome(src_path)
+    ext_genome = PdfGenome.load_external_genome(ext_folder)
+    mutated_pdf_obj = PdfGenome.mutation(pdf_obj, mut_prob, ext_genome)
+    PdfGenome.save_to_file(mutated_pdf_obj, dst_path)
+    return True

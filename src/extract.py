@@ -145,7 +145,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
             features['children_count_variance'] = np.var(children_count)
             features['leaves_count'] = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
             features['nodes_count'] = G.number_of_nodes()
-            features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes()
+            features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0
             features['degree_assortativity'] = nx.degree_assortativity_coefficient(G.to_undirected())
             features['average_shortest_path'] = nx.average_shortest_path_length(G.to_undirected())
             features['average_clustering_coefficient'] = nx.average_clustering(G.to_undirected())
@@ -157,4 +157,4 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
         # logging.info([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
         # add the extracted features to the DataFrame
         destination.add_entry(features)
-        # logging.info(f"Finished processing: {pdf_path}")
+        logging.info(f"Finished processing: {pdf_path}")
