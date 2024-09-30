@@ -20,6 +20,7 @@ class PdfGenome:
 
     def __enter__(self):
         self.pdf_obj = PdfReader(self.pdf_file_path)
+        return self.pdf_obj
 
     def __exit__(self, *args):
         del self.pdf_obj

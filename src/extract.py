@@ -62,7 +62,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                         features['metadata_size'] += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
 
                 features['pages'] = len(pymupdf_file)
-                features['header'] = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
+
 
                 features['image_count'] = 0
                 features['text'] = 0
@@ -83,24 +83,48 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['object_count'] = -1
                     features['font_count'] = -1
 
-                features['embedded_files_count'] = pymupdf_file.embfile_count()
-                embedded_files_total_size = 0
-                for i in range(features['embedded_files_count']):
-                    embfile = pymupdf_file.embfile_get(i)
-                    if pymupdf_file.xref_is_stream(embfile.xref): #check if stream
+                try:
+                    features['embedded_files_count'] = pymupdf_file.embfile_count()
+                    embedded_files_total_size = 0
+                    for i in range(features['embedded_files_count']):
+                        embfile = pymupdf_file.embfile_get(i)
                         embedded_files_total_size += len(pymupdf_file.embfile_get(i))
-                features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
+                    features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
+                except Exception as e:
+                    logging.exception(f"Embedded file processing failed for {pdf_path}")
+                    features["embedded_files_count"] = -1
+                    features["embedded_files_average_size"] = -1
+
+                try:
+                    all_streams_xrefs = [i for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i)]
+                    stream_sizes = [len(pymupdf_file.xref_stream(i)) for i in all_streams_xrefs]
+                    features['stream_object_count'] = len(all_streams_xrefs)
+                    features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if len(stream_sizes) > 0 else 0
+                except Exception as e:
+                    logging.exception(f"Stream processing failed for {pdf_path}")
+                    features["stream_object_count"] = -1
+                    features["stream_average_size"] = -1
+
+                try:
+                    features['xref_count'] = pymupdf_file.xref_length()
+                    features['obfuscation_count'] = 0 #TODO
+                    features['filter_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i) and '/Filter' in pymupdf_file.xref_object(i))
+                    features['nestedfilter_object_count'] = 0 #TODO
+                except Exception as e:
+                    logging.exception(f"Error wile extracting xref_count/obf_count/filter_count/nestedfilter_obj_count on {pdf_path}")
+                    if "xref_count" not in features.keys():
+                        features['xref_count'] = -1
+                    if "obfuscation_count" not in features.keys():
+                        features['obfuscation_count'] = -1
+                    if "filter_count" not in features.keys():
+                        features['filter_count'] = -1
+                    if "nestedfilter_object_count" not in features.keys():
+                        features['nestedfilter_object_count'] = -1
+
+                
+                features['header'] = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
 
 
-                all_xrefs = [pymupdf_file.xref_object(i) for i in range(pymupdf_file.xref_length())]
-
-                stream_sizes = [len(xref) for xref in all_xrefs if pymupdf_file.xref_is_stream(xref)]
-                features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if len(stream_sizes) > 0 else 0
-                features['xref_count'] = pymupdf_file.xref_length()
-                features['obfuscation_count'] = 0 #TODO
-                features['filter_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i) and '/Filter' in pymupdf_file.xref_object(i))
-                features['nestedfilter_object_count'] = 0 #TODO
-                features['stream_object_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i))
             except Exception as e:
                 logging.exception(f"Error while processing file with PyMuPDF {pdf_path}")
     except:
