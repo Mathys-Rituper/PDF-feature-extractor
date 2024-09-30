@@ -15,8 +15,14 @@ from pdfrw.objects import PdfObject
 
 
 class PdfGenome:
-    def __init__(self):
-        pass
+    def __init__(self, pdf_file_path):
+        self.pdf_file_path = pdf_file_path
+
+    def __enter__(self):
+        self.pdf_obj = PdfReader(self.pdf_file_path)
+
+    def __exit__(self):
+        del self.pdf_obj
 
     @staticmethod
     def load_genome(pdf_file_path):

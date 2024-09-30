@@ -123,7 +123,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
     features['xref_keyword_count'] = 0
     features['startxref_keyword_count'] = 0
 
-        # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
+    # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
     features['children_count_average'] = -1
     features['children_count_median'] = -1
     features['children_count_variance'] = -1
@@ -134,31 +134,31 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
     features['average_shortest_path'] = -1
     features['average_clustering_coefficient'] = -1
     features['density'] = -1
-    # try:
-    #     # TODO FIXME all of this is crap
-    #     #logging.info(f"Extracting nodal features for {pdf_path}")
-    #     with PdfGenome.load_genome(pdf_path) as genomeObj:
-    #         try:
-    #             paths = PdfGenome.get_object_paths(genomeObj)
-    #             G = nx.DiGraph()
-    #             for path in paths:
-    #                 for i in range(len(path)-1):
-    #                     G.add_edge(path[i], path[i+1])
-    #             children_count = [degree for _, degree in G.out_degree()]
-    #             features['children_count_average'] = np.mean(children_count)
-    #             features['children_count_median'] = np.median(children_count)
-    #             features['children_count_variance'] = np.var(children_count)
-    #             features['leaves_count'] = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
-    #             features['nodes_count'] = G.number_of_nodes()
-    #             features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0
-    #             features['degree_assortativity'] = nx.degree_assortativity_coefficient(G.to_undirected())
-    #             features['average_shortest_path'] = nx.average_shortest_path_length(G.to_undirected())
-    #             features['average_clustering_coefficient'] = nx.average_clustering(G.to_undirected())
-    #             features['density'] = nx.density(G)
-    #         except:
-    #             logging.exception(f"Genome processing error for: {pdf_path}")
-    # except Exception as e:
-    #     logging.exception(f"genome extraction error for: {pdf_path}")
+    try:
+        # TODO FIXME all of this is crap
+        #logging.info(f"Extracting nodal features for {pdf_path}")
+        with PdfGenome(pdf_path) as genomeObj:
+            try:
+                paths = PdfGenome.get_object_paths(genomeObj)
+                G = nx.DiGraph()
+                for path in paths:
+                    for i in range(len(path)-1):
+                        G.add_edge(path[i], path[i+1])
+                children_count = [degree for _, degree in G.out_degree()]
+                features['children_count_average'] = np.mean(children_count)
+                features['children_count_median'] = np.median(children_count)
+                features['children_count_variance'] = np.var(children_count)
+                features['leaves_count'] = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
+                features['nodes_count'] = G.number_of_nodes()
+                features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0
+                features['degree_assortativity'] = nx.degree_assortativity_coefficient(G.to_undirected())
+                features['average_shortest_path'] = nx.average_shortest_path_length(G.to_undirected())
+                features['average_clustering_coefficient'] = nx.average_clustering(G.to_undirected())
+                features['density'] = nx.density(G)
+            except:
+                logging.exception(f"Genome processing error for: {pdf_path}")
+    except Exception as e:
+        logging.exception(f"genome extraction error for: {pdf_path}")
      
 
         # logging.info([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
