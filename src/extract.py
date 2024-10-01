@@ -5,12 +5,15 @@ import sys
 import threading
 
 import pandas as pd
-import pdfid
 import pymupdf
 
 from lib.pdf_genome import PdfGenome
 import networkx as nx
 import numpy as np
+
+from pdfid import pdfid
+import re
+from xml.dom.minidom import parseString
 
 class Threaded_dataframe:
     def __init__(self, features: list[str]):
@@ -39,6 +42,15 @@ def hash_file_sha256(filename: str):
     with open(filename,"rb") as f:
         bytes = f.read()
         return hashlib.sha256(bytes).hexdigest()
+
+def extract_keyword_count(data, keyword_name):
+    xml_data = data
+    
+    search_str = f'Keyword Name="{keyword_name}" Count="'
+    count_start = xml_data.find(search_str) + len(search_str)
+    if count_start > len(search_str) - 1:
+        return int(xml_data[count_start:xml_data.find('"', count_start)])
+    return 0
 
 def extract_features_from_file(pdf_path : str, is_malicious : bool,
                                      destination : Threaded_dataframe):
@@ -130,25 +142,44 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
     except:
         logging.exception(f"Failed to open {pymupdf_file} with PyMuPDF")
         
-
-
-    features['stream_keyword_count'] = 0
-    features['endstream_keyword_count'] = 0
-    features['javascript_keyword_count'] = 0
-    features['js_keyword_count'] = 0
-    features['uri_keyword_count'] = 0
-    features['action_keyword_count'] = 0
-    features['aa_keyword_count'] = 0
-    features['openaction_keyword_count'] = 0
-    features['launch_keyword_count'] = 0
-    features['submitform_keyword_count'] = 0
-    features['acroform_keyword_count'] = 0
-    features['xfa_keyword_count'] = 0
-    features['jbig2decode_keyword_count'] = 0
-    features['richmedia_keyword_count'] = 0
-    features['trailer_keyword_count'] = 0
-    features['xref_keyword_count'] = 0
-    features['startxref_keyword_count'] = 0
+    try:
+        pdfid_manip = pdfid.PDFiD(pdf_path)
+        try:
+            xml_data_og = pdfid_manip.toxml()
+            # attention, sensible à la casse !
+            features['stream_keyword_count'] = extract_keyword_count(xml_data_og, 'stream')
+            features['endstream_keyword_count'] = extract_keyword_count(xml_data_og, 'endstream')
+            features['javascript_keyword_count'] = extract_keyword_count(xml_data_og, '/JavaScript')
+            features['js_keyword_count'] = extract_keyword_count(xml_data_og, '/JS')
+            features['uri_keyword_count'] = 0 #TODO
+            features['action_keyword_count'] = 0 #TODO
+            features['aa_keyword_count'] = extract_keyword_count(xml_data_og, '/AA')
+            features['openaction_keyword_count'] = extract_keyword_count(xml_data_og, '/OpenAction')
+            features['launch_keyword_count'] = extract_keyword_count(xml_data_og, '/Launch')
+            features['submitform_keyword_count'] = 0 #TODO
+            features['acroform_keyword_count'] = extract_keyword_count(xml_data_og, '/AcroForm')
+            features['xfa_keyword_count'] = extract_keyword_count(xml_data_og, '/XFA')
+            features['jbig2decode_keyword_count'] = extract_keyword_count(xml_data_og, '/JBIG2Decode')
+            features['richmedia_keyword_count'] = extract_keyword_count(xml_data_og, '/RichMedia')
+            features['trailer_keyword_count'] = extract_keyword_count(xml_data_og, 'trailer')
+            features['xref_keyword_count'] = extract_keyword_count(xml_data_og, 'xref')
+            features['startxref_keyword_count'] = extract_keyword_count(xml_data_og, 'startxref')
+        except Exception as e:
+            logging.exception(f"Exception while analyzing with pdfid on {pdf_path}")
+            for key in ["stream_keyword_count", "endstream_keyword_count", "javascript_keyword_count", "js_keyword_count", "uri_keyword_count",
+                         "action_keyword_count", "aa_keyword_count", "openaction_keyword_count", "launch_keyword_count", "submitform_keyword_count", 
+                         "acroform_keyword_count", "xfa_keyword_count", "jbig2decode_keyword_count", "richmedia_keyword_count", "trailer_keyword_count"
+                         "xref_keyword_count", "startxref_keyword_count"]:
+                if key not in features.keys():
+                    features[key] = -1
+    except Exception as e:
+        logging.exception(f"Exception while parsing file with pdfid on {pdf_path}")
+        for key in ["stream_keyword_count", "endstream_keyword_count", "javascript_keyword_count", "js_keyword_count", "uri_keyword_count",
+                         "action_keyword_count", "aa_keyword_count", "openaction_keyword_count", "launch_keyword_count", "submitform_keyword_count", 
+                         "acroform_keyword_count", "xfa_keyword_count", "jbig2decode_keyword_count", "richmedia_keyword_count", "trailer_keyword_count"
+                         "xref_keyword_count", "startxref_keyword_count"]:
+                if key not in features.keys():
+                    features[key] = -1
 
     # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
     features['children_count_average'] = -1
