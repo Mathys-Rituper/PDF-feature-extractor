@@ -11,7 +11,9 @@ from lib.pdf_genome import PdfGenome
 import networkx as nx
 import numpy as np
 
-from pdfid import pdfid
+from pdfrw import PdfReader
+
+from lib.pdfidnew import PDFiD
 import re
 from xml.dom.minidom import parseString
 
@@ -51,6 +53,54 @@ def extract_keyword_count(data, keyword_name):
     if count_start > len(search_str) - 1:
         return int(xml_data[count_start:xml_data.find('"', count_start)])
     return 0
+
+def count_indirect_objects(pdf_file):
+    with open(pdf_file, 'rb') as file:
+        content = file.read()
+    indirect_objects = re.findall(rb'\d+ \d+ obj', content)
+    return len(indirect_objects)
+
+def is_base64(s):
+    if len(s) % 4 == 0:
+        base64_pattern = re.compile(b'^[A-Za-z0-9+/]+={0,2}$')
+        return base64_pattern.match(s) is not None
+    return False
+
+def count_obfuscations(pdf_file):
+    obfuscations = 0
+    
+    with open(pdf_file, 'rb') as file:
+        content = file.read()
+
+    hex_matches = re.findall(rb'<[0-9A-Fa-f]+>', content)
+    obfuscations += len(hex_matches)
+    
+    filter_matches = re.findall(rb'/Filter\s*(\[.*?\]|\S+)', content)
+    obfuscations += len(filter_matches)
+    
+    potential_base64_strings = re.findall(rb'[A-Za-z0-9+/]{4,}(?:={0,2})', content)
+    
+    for b64_string in potential_base64_strings:
+        if is_base64(b64_string):
+            obfuscations += 1
+
+    return obfuscations
+
+def count_nested_filters(pdf_file):
+    nested_filters = 0
+    
+    with open(pdf_file, 'rb') as file:
+        content = file.read()
+    filter_matches = re.findall(rb'/Filter\s*(\[.*?\]|\S+)', content)
+    
+    for match in filter_matches:
+        if match.startswith(b'[') and match.endswith(b']'):
+            nested_filters += 1
+        else:
+            if b' ' in match:
+                nested_filters += 1
+
+    return nested_filters
 
 def extract_features_from_file(pdf_path : str, is_malicious : bool,
                                      destination : Threaded_dataframe):
@@ -119,13 +169,16 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
 
                 try:
                     features['xref_count'] = pymupdf_file.xref_length()
-                    features['obfuscation_count'] = 0 #TODO
+                    features['indirect_objects_count'] = count_indirect_objects(pdf_path)
+                    features['obfuscation_count'] = count_obfuscations(pdf_path)
                     features['filter_count'] = sum(1 for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i) and '/Filter' in pymupdf_file.xref_object(i))
-                    features['nestedfilter_object_count'] = 0 #TODO
+                    features['nestedfilter_object_count'] = count_nested_filters(pdf_path)
                 except Exception as e:
                     logging.exception(f"Error wile extracting xref_count/obf_count/filter_count/nestedfilter_obj_count on {pdf_path}")
                     if "xref_count" not in features.keys():
                         features['xref_count'] = -1
+                    if "indirect_objects_count" not in features.keys():
+                        features['indirect_objects_count'] = -1
                     if "obfuscation_count" not in features.keys():
                         features['obfuscation_count'] = -1
                     if "filter_count" not in features.keys():
@@ -133,17 +186,13 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     if "nestedfilter_object_count" not in features.keys():
                         features['nestedfilter_object_count'] = -1
 
-                
-                features['header'] = 0 # TODO Censé être fait avec pdfid mais il n'y a pas de documentation sur comment faire
-
-
             except Exception as e:
                 logging.exception(f"Error while processing file with PyMuPDF {pdf_path}")
     except:
         logging.exception(f"Failed to open {pymupdf_file} with PyMuPDF")
         
     try:
-        pdfid_manip = pdfid.PDFiD(pdf_path)
+        pdfid_manip = PDFiD(pdf_path)
         try:
             xml_data_og = pdfid_manip.toxml()
             # attention, sensible à la casse !
@@ -151,12 +200,12 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
             features['endstream_keyword_count'] = extract_keyword_count(xml_data_og, 'endstream')
             features['javascript_keyword_count'] = extract_keyword_count(xml_data_og, '/JavaScript')
             features['js_keyword_count'] = extract_keyword_count(xml_data_og, '/JS')
-            features['uri_keyword_count'] = 0 #TODO
-            features['action_keyword_count'] = 0 #TODO
+            features['uri_keyword_count'] = extract_keyword_count(xml_data_og, '/URI')
+            features['action_keyword_count'] = extract_keyword_count(xml_data_og, '/Action')
             features['aa_keyword_count'] = extract_keyword_count(xml_data_og, '/AA')
             features['openaction_keyword_count'] = extract_keyword_count(xml_data_og, '/OpenAction')
             features['launch_keyword_count'] = extract_keyword_count(xml_data_og, '/Launch')
-            features['submitform_keyword_count'] = 0 #TODO
+            features['submitform_keyword_count'] = extract_keyword_count(xml_data_og, '/SubmitForm')
             features['acroform_keyword_count'] = extract_keyword_count(xml_data_og, '/AcroForm')
             features['xfa_keyword_count'] = extract_keyword_count(xml_data_og, '/XFA')
             features['jbig2decode_keyword_count'] = extract_keyword_count(xml_data_og, '/JBIG2Decode')
@@ -164,12 +213,13 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
             features['trailer_keyword_count'] = extract_keyword_count(xml_data_og, 'trailer')
             features['xref_keyword_count'] = extract_keyword_count(xml_data_og, 'xref')
             features['startxref_keyword_count'] = extract_keyword_count(xml_data_og, 'startxref')
+            features['header'] = re.search(r'Header="([^"]+)"', xml_data_og).group(1)
         except Exception as e:
             logging.exception(f"Exception while analyzing with pdfid on {pdf_path}")
             for key in ["stream_keyword_count", "endstream_keyword_count", "javascript_keyword_count", "js_keyword_count", "uri_keyword_count",
                          "action_keyword_count", "aa_keyword_count", "openaction_keyword_count", "launch_keyword_count", "submitform_keyword_count", 
                          "acroform_keyword_count", "xfa_keyword_count", "jbig2decode_keyword_count", "richmedia_keyword_count", "trailer_keyword_count"
-                         "xref_keyword_count", "startxref_keyword_count"]:
+                         "xref_keyword_count", "startxref_keyword_count", "header"]:
                 if key not in features.keys():
                     features[key] = -1
     except Exception as e:
@@ -177,11 +227,11 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
         for key in ["stream_keyword_count", "endstream_keyword_count", "javascript_keyword_count", "js_keyword_count", "uri_keyword_count",
                          "action_keyword_count", "aa_keyword_count", "openaction_keyword_count", "launch_keyword_count", "submitform_keyword_count", 
                          "acroform_keyword_count", "xfa_keyword_count", "jbig2decode_keyword_count", "richmedia_keyword_count", "trailer_keyword_count"
-                         "xref_keyword_count", "startxref_keyword_count"]:
+                         "xref_keyword_count", "startxref_keyword_count", "header"]:
                 if key not in features.keys():
                     features[key] = -1
 
-    # The nodal properties are extracted from code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available.
+    # The nodal properties are extracted using code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available for review and comparaison..
     features['children_count_average'] = -1
     features['children_count_median'] = -1
     features['children_count_variance'] = -1

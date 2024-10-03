@@ -43,6 +43,7 @@ Before diving on the technical aspects of the project, let's first define the fe
 | stream_average_size            | Average size of streams in the file         | float/bytes     |
 | xref_count                     | Number of xref entries                      | int             |
 | obfuscation_count              | Number of obfuscations used in the document | int             |
+| indirect_object_count          | Number of indirect objects                  | int             |
 | filter_count                   | Total number of filter used in the file     | int             |
 | nestedfilter_object_count      | Number of objects with nested filters       | int             |
 | stream_object_count            | Number of stream objects in the file        | int             |
@@ -79,5 +80,7 @@ The feature extraction process will be done in Python, using the following libra
 - pdfid: to extract the header and other features from the PDF files
 - networkx: to extract the nodal features from the PDF files
 
-
-
+For the obfuscation_count feature, we focus on 3 specifications :
+- Number of base64 encoded strings
+- Number compression filters
+- Number of hex strings
