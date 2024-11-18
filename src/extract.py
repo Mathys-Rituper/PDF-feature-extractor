@@ -1,8 +1,6 @@
 import hashlib
 import logging
 import os
-import sys
-import threading
 
 import pandas as pd
 import pymupdf
@@ -11,33 +9,9 @@ from lib.pdf_genome import PdfGenome
 import networkx as nx
 import numpy as np
 
-from pdfrw import PdfReader
-
 from lib.pdfidnew import PDFiD
 import re
 from xml.dom.minidom import parseString
-
-class Threaded_dataframe:
-    def __init__(self, features: list[str]):
-        self.dataframe = pd.DataFrame(columns=features)
-        self._lock = threading.Lock()
-        self.values = []
-
-    def add_entry(self, entry):
-        with self._lock:
-            try:
-                self.values.append(entry)
-            except Exception as e:
-                logging.exception(f"Could not write entry to dataframe" )
-
-    def __len__(self):
-        if len(self.dataframe) != len(self.values):
-            self.dataframe = pd.DataFrame.from_records(self.values)
-        return len(self.dataframe)
-
-    def to_csv(self, features, index):
-        self.dataframe = pd.DataFrame.from_records(self.values)
-        return self.dataframe.to_csv(features, index=index)
 
 def hash_file_sha256(filename: str):
     """ Returns the SHA256 hash of a file """
@@ -102,8 +76,7 @@ def count_nested_filters(pdf_file):
 
     return nested_filters
 
-def extract_features_from_file(pdf_path : str, is_malicious : bool,
-                                     destination : Threaded_dataframe):
+def extract_features_from_file(pdf_path : str, is_malicious : bool):
     features = {}
     features['is_malicious'] = is_malicious
 
@@ -117,6 +90,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['encryption'] = pymupdf_file.needs_pass or pymupdf_file.metadata["encryption"] is not None
                 except TypeError:
                     logging.exception(f"encryption check error for {pdf_path}")
+                    features['encryption'] = -1
             
                 features['metadata_size'] = 0
                 if isinstance(pymupdf_file.metadata, dict):
@@ -124,7 +98,6 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                         features['metadata_size'] += len(key.encode("utf8")) + (len(pymupdf_file.metadata[key].encode("utf8")) if isinstance(pymupdf_file.metadata[key], str) else 0)
 
                 features['pages'] = len(pymupdf_file)
-
 
                 features['image_count'] = 0
                 features['text'] = 0
@@ -140,10 +113,10 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['font_count'] = len(fonts)
                 except Exception as e:
                     logging.exception(f"Exception while processing {pdf_path}")
-                    features['image_count'] = -1
-                    features['text'] = -1
-                    features['object_count'] = -1
-                    features['font_count'] = -1
+                    keys = ['image_count', 'text', 'object_count', 'font_count']
+                    for key in keys:
+                        if key not in features.keys():
+                            features[key] = -1
 
                 try:
                     features['embedded_files_count'] = pymupdf_file.embfile_count()
@@ -154,8 +127,10 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['embedded_files_average_size'] = embedded_files_total_size / features['embedded_files_count'] if features['embedded_files_count'] > 0 else 0
                 except Exception as e:
                     logging.exception(f"Embedded file processing failed for {pdf_path}")
-                    features["embedded_files_count"] = -1
-                    features["embedded_files_average_size"] = -1
+                    keys = ['embedded_files_count', 'embedded_files_average_size']
+                    for key in keys:
+                        if key not in features.keys():
+                            features[key] = -1
 
                 try:
                     all_streams_xrefs = [i for i in range(pymupdf_file.xref_length()) if pymupdf_file.xref_is_stream(i)]
@@ -164,8 +139,10 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['stream_average_size'] = sum(stream_sizes) / len(stream_sizes) if len(stream_sizes) > 0 else 0
                 except Exception as e:
                     logging.exception(f"Stream processing failed for {pdf_path}")
-                    features["stream_object_count"] = -1
-                    features["stream_average_size"] = -1
+                    keys = ['stream_object_count', 'stream_average_size']
+                    for key in keys:
+                        if key not in features.keys():
+                            features[key] = -1
 
                 try:
                     features['xref_count'] = pymupdf_file.xref_length()
@@ -175,16 +152,10 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features['nestedfilter_object_count'] = count_nested_filters(pdf_path)
                 except Exception as e:
                     logging.exception(f"Error wile extracting xref_count/obf_count/filter_count/nestedfilter_obj_count on {pdf_path}")
-                    if "xref_count" not in features.keys():
-                        features['xref_count'] = -1
-                    if "indirect_objects_count" not in features.keys():
-                        features['indirect_objects_count'] = -1
-                    if "obfuscation_count" not in features.keys():
-                        features['obfuscation_count'] = -1
-                    if "filter_count" not in features.keys():
-                        features['filter_count'] = -1
-                    if "nestedfilter_object_count" not in features.keys():
-                        features['nestedfilter_object_count'] = -1
+                    keys = ['xref_count', 'indirect_objects_count', 'obfuscation_count', 'filter_count', 'nestedfilter_object_count']
+                    for key in keys:
+                        if key not in features.keys():
+                            features[key] = -1
 
             except Exception as e:
                 logging.exception(f"Error while processing file with PyMuPDF {pdf_path}")
@@ -232,18 +203,7 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                     features[key] = -1
 
     # The nodal properties are extracted using code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available for review and comparaison..
-    features['children_count_average'] = -1
-    features['children_count_median'] = -1
-    features['children_count_variance'] = -1
-    features['leaves_count'] = -1
-    features['nodes_count'] = -1
-    features['degree'] = -1
-    features['degree_assortativity'] = -1
-    features['average_shortest_path'] = -1
-    features['average_clustering_coefficient'] = -1
-    features['density'] = -1
     try:
-        # TODO FIXME all of this is crap
         #logging.info(f"Extracting nodal features for {pdf_path}")
         with PdfGenome(pdf_path) as genomeObj:
             try:
@@ -265,11 +225,18 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool,
                 features['density'] = nx.density(G)
             except:
                 logging.exception(f"Genome processing error for: {pdf_path}")
+                keys = ['children_count_average', 'children_count_median', 'children_count_variance', 'leaves_count', 'nodes_count', 'degree', 'degree_assortativity', 'average_shortest_path', 'average_clustering_coefficient', 'density']
+                for key in keys:
+                    if key not in features.keys():
+                        features[key] = -1
     except Exception as e:
-        logging.exception(f"genome extraction error for: {pdf_path}")
+        logging.exception(f"Pdfrw opening error error for: {pdf_path}")
+        keys = ['children_count_average', 'children_count_median', 'children_count_variance', 'leaves_count', 'nodes_count', 'degree', 'degree_assortativity', 'average_shortest_path', 'average_clustering_coefficient', 'density']
+        for key in keys:
+            if key not in features.keys():
+                features[key] = -1
      
 
         # logging.info([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
-        # add the extracted features to the DataFrame
-    destination.add_entry(features)
     logging.info(f"Finished processing: {pdf_path}")
+    return features

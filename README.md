@@ -84,3 +84,16 @@ For the obfuscation_count feature, we focus on 3 specifications :
 - Number of base64 encoded strings
 - Number compression filters
 - Number of hex strings
+
+### Usage
+
+- Install the requirements in requirements.txt using pip
+```bash
+pip install -r requirements.txt
+```
+- Download the custom version of pdfrw : 
+```bash
+git clone https://github.com/Blushsard/PDF-Malware-Parser
+cd PDF-Malware-Parser
+pip install .
+```
