@@ -445,6 +445,9 @@ def PDFiD(file, allNames=False, extraData=False, disarm=False, force=False, outp
                 '/Action',
                 '/URI',
                 '/SubmitForm',
+                '/Filter',
+                '/Font',
+                '/Image',
                ]
     words = {}
     dates = []
@@ -795,6 +798,10 @@ class cPDFiD():
         self.uri = self.keywords['/URI']
         self.submitform = self.keywords['/SubmitForm']
         self.colors_gt_2_24 = self.keywords['/Colors > 2^24']
+        self.filter = self.keywords['/Filter']
+        self.font = self.keywords['/Font']
+        self.image = self.keywords['/Image']
+
 
 def Print(lines, options):
     if not options.json:
