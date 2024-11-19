@@ -5,3 +5,4 @@ env
 features.csv
 .DS_Store
 *.log
+*.csv*

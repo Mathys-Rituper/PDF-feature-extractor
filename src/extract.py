@@ -228,7 +228,6 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool):
 
     # The nodal properties are extracted using code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available for review and comparaison..
     try:
-        #logging.info(f"Extracting nodal features for {pdf_path}")
         with PdfGenome(pdf_path) as genomeObj:
             try:
                 paths = PdfGenome.get_object_paths(genomeObj)

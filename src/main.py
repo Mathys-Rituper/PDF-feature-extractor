@@ -12,7 +12,7 @@ def extract_then_add(pdf_path, is_malicious, dest_df):
     features = extract_features_from_file(pdf_path, is_malicious)
     features['is_malicious'] = is_malicious
     dest_df.add_entry(features)
-    logging.info(f"Number of samples: {len(dest_df)}")
+    #logging.info(f"Number of samples: {len(dest_df)}")
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -41,7 +41,7 @@ def main():
     df = Threaded_dataframe(features)
 
     files_iterator = [(file, True, df) for file in malicious_files] + [(file, False, df) for file in benign_files]
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         for arg in files_iterator:
             executor.submit(extract_then_add, arg[0], arg[1], arg[2])
 
