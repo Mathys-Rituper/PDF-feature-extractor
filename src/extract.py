@@ -131,12 +131,6 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool):
         features['object_count'] = object_count(pdf_path)
         features['embedded_files_count'] = embedded_file_count(pdf_path)
 
-
-        # Duplicates de endxref_keyword_count et stream_keyword_count
-        features['stream_object_count'] = stream_objects_count(pdf_path)
-        features['xref_count'] = xref_count(pdf_path)
-
-
         features['indirect_objects_count'] = count_indirect_objects(pdf_path)
         features['obfuscation_count'] = count_obfuscations(pdf_path)
         features['nestedfilter_object_count'] = count_nested_filters(pdf_path)
@@ -226,40 +220,5 @@ def extract_features_from_file(pdf_path : str, is_malicious : bool):
                 if key not in features.keys():
                     features[key] = -1
 
-    # The nodal properties are extracted using code inspired by Ran Liu et Al.'s work for their research paper "Evaluating Representativeness in PDF Malware Datasets: A Comparative Study and a New Dataset". We thank them for making this code available for review and comparaison..
-    try:
-        with PdfGenome(pdf_path) as genomeObj:
-            try:
-                paths = PdfGenome.get_object_paths(genomeObj)
-                G = nx.DiGraph()
-                for path in paths:
-                    for i in range(len(path)-1):
-                        G.add_edge(path[i], path[i+1])
-                children_count = [degree for _, degree in G.out_degree()]
-                features['children_count_average'] = np.mean(children_count)
-                features['children_count_median'] = np.median(children_count)
-                features['children_count_variance'] = np.var(children_count)
-                features['leaves_count'] = sum(1 for node in G.nodes() if G.out_degree(node) == 0)
-                features['nodes_count'] = G.number_of_nodes()
-                features['degree'] = sum(dict(G.degree()).values()) / G.number_of_nodes() if G.number_of_nodes() > 0 else 0
-                features['degree_assortativity'] = nx.degree_assortativity_coefficient(G.to_undirected())
-                features['average_shortest_path'] = nx.average_shortest_path_length(G.to_undirected())
-                features['average_clustering_coefficient'] = nx.average_clustering(G.to_undirected())
-                features['density'] = nx.density(G)
-            except:
-                logging.exception(f"pdfrw_error:Genome processing error for: {pdf_path}")
-                keys = ['children_count_average', 'children_count_median', 'children_count_variance', 'leaves_count', 'nodes_count', 'degree', 'degree_assortativity', 'average_shortest_path', 'average_clustering_coefficient', 'density']
-                for key in keys:
-                    if key not in features.keys():
-                        features[key] = -1
-    except Exception as e:
-        logging.exception(f"pdfrw_error:opening error error for: {pdf_path}")
-        keys = ['children_count_average', 'children_count_median', 'children_count_variance', 'leaves_count', 'nodes_count', 'degree', 'degree_assortativity', 'average_shortest_path', 'average_clustering_coefficient', 'density']
-        for key in keys:
-            if key not in features.keys():
-                features[key] = -1
-     
-
-        # logging.info([hashed_file, pdf_size, title_len, encryption, metadata_size, pages, header, image_count, text, object_count, font_count, embedded_files_count, embedded_files_average_size, stream_keyword_count, endstream_keyword_count, stream_average_size, xref_count, obfuscation_count, filter_count, nestedfilter_object_count, stream_object_count, javascript_keyword_count, js_keyword_count, uri_keyword_count, action_keyword_count, aa_keyword_count, openaction_keyword_count, launch_keyword_count, submitform_keyword_count, acroform_keyword_count, xfa_keyword_count, jbig2decode_keyword_count, richmedia_keyword_count, trailer_keyword_count, xref_keyword_count, startxref_keyword_count, children_count_average, children_count_median, children_count_variance, leaves_count, nodes_count, degree, degree_assortativity, average_shortest_path, average_clustering_coefficient, density, is_malicious])
     logging.info(f"Finished processing: {pdf_path}")
     return features
