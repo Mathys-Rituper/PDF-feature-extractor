@@ -6,3 +6,4 @@ features.csv
 .DS_Store
 *.log
 *.csv*
+*.zip
